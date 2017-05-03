@@ -10,6 +10,10 @@ import shutil
 from PIL import Image
 from PIL.ExifTags import TAGS
 import datetime
+import converter
+from converter import Converter
+video_converter = Converter()
+
 
 def get_minimum_creation_time(exif_data):
     mtime = "2020:12:30 00:00:00"
@@ -35,6 +39,10 @@ def get_creationdate_with_filename_as_dict(sourc_dir, by_file_name):
             #fullFileName = folder + "\\" + f
             fullFileName = os.path.join(dirname, f)
             print('counter = %d,  file is %s' %(counter, fullFileName))
+            if f == '.picasa.ini' or f == 'Thumbs.db':
+                print("skip .picasa.ini or Thumbs.db")
+                continue
+
             if counter == 50:
                 print('stop here')
             if by_file_name:  # wrong exif info
@@ -42,20 +50,42 @@ def get_creationdate_with_filename_as_dict(sourc_dir, by_file_name):
                 mtime = mtime[:6]
                 mtime = mtime[:4] + '-' + mtime[4:]
             else:
+                mtime = '2020-12-30'
                 try:
                     img = Image.open(fullFileName)
                 except Exception as e:
-                    print("    Skipping '%s' due to exception: %s"%(f, e))
-                    continue
-                try:
-                    img_exif = img._getexif()
-                except Exception as e:
-                    print("    Can't read EXIF from '%s' due to exception: %s"%(f, e))
-                    img_exif = None
-                if img_exif:
-                    mtime = get_minimum_creation_time(img_exif)
+                    print(" '%s' as image open failing due to exception: %s"%(f, e))
+                    image_open_fail = True
+                if image_open_fail:
+                    try:
+                        video_info = video_converter.probe(fullFileName)
+                    except Exception as e:
+                        print("   Skipping file %s(can't open as image and video file: %s" %(f, e))
+                        video_open_fail = True
+                        continue
+                    # treat as video file
+                    v_stream = video_info.streams #metadata.creation_time
+                    min_creation_time = '2020:12:30 00:00:00'
+                    for stream in v_stream:
+                        v_metadata = stream.metadata
 
-                if not img_exif or mtime == '2020-12-30':  #wrong exif info
+                        v_creation_time = v_metadata.get('creation_time', min_creation_time)
+                        v_creation_time = v_creation_time.replace('-', ':')
+                        if v_creation_time < min_creation_time:
+                            min_creation_time = v_creation_time
+
+                    mtime = min_creation_time[0:10].replace(':', '-')
+
+                else:  #open as image success
+                    try:
+                        img_exif = img._getexif()
+                    except Exception as e:
+                        print("    Can't read EXIF from '%s' due to exception: %s"%(f, e))
+                        img_exif = None
+                    if img_exif:
+                        mtime = get_minimum_creation_time(img_exif)
+
+                if  mtime == '2020-12-30':  #wrong exif info or no creation time in video
                     mtime = os.path.basename(fullFileName)
                     mtime = mtime[:6]
                     mtime = mtime[:4] + '-' + mtime[4:]
@@ -81,7 +111,7 @@ def get_creationdate_with_filename_as_dict(sourc_dir, by_file_name):
                 i += 1
             mtime = mtime+"_"*i
             result[mtime] = fullFileName
-    for key in result:
+    for key in sorted(result):
         print(key, result[key])
     print("  Found %s orignal files in %s."%(counter, folder))
     print("Added total of %s to dictionary."%len(result))
