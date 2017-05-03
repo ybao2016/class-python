@@ -1,4 +1,5 @@
-# encoding: utf-8
+# -*-coding:GB18030-*-
+
 """
 Created on 4/28/2017
 Copyright (c) Nick Bao. All rights reserved.
@@ -70,6 +71,8 @@ def get_creationdate_with_filename_as_dict(sourc_dir, by_file_name):
             result[mtime] = fullFileName
     print("  Found %s orignal files in %s."%(counter, folder))
     print("Added total of %s to dictionary."%len(result))
+    for key in result:
+        print(key, result[key])
     return result
 def copy_from_image_dict_to_directory(image_dict, output_dir, move_file):
     assert os.path.exists(output_dir)
@@ -93,9 +96,9 @@ def copy_from_image_dict_to_directory(image_dict, output_dir, move_file):
             shutil.copy2(image_dict[key], output_file)
     print("Copied %s files to %s"%(i+1, output_dir))
 if __name__=="__main__":
-    source_dir = r"C:\tmp\photo1_test"
-    output_dir = r"C:\tmp"
+    source_dir = r"D:\final_photo\03_瑶瑶家生活\temp-new-doublekiller-pass"
+    output_dir = r"D:\final_photo\03_瑶瑶家生活"
 
     # obtain /var/tmp/images/iPhone, /var/tmp/images/CanonPowerShot, /var/tmp/images/Nikon1
-    all_files = get_creationdate_with_filename_as_dict(source_dir, by_file_name=False, move_file=True)
-    copy_from_image_dict_to_directory(all_files, output_dir)
+    all_files = get_creationdate_with_filename_as_dict(source_dir, by_file_name=False)
+    copy_from_image_dict_to_directory(all_files, output_dir,move_file=True)
