@@ -54,25 +54,37 @@ def get_creationdate_with_filename_as_dict(sourc_dir, by_file_name):
                     img_exif = None
                 if img_exif:
                     mtime = get_minimum_creation_time(img_exif)
-                else:
-                    idate = os.path.getmtime(fullFileName)
-                    idate = datetime.datetime.fromtimestamp(idate)
-                    mtime = idate.date().isoformat()
-                #mtime = get_minimum_creation_time(img._getexif())
-                if(mtime == '2020-12-30'):  #wrong exif info
+
+                if not img_exif or mtime == '2020-12-30':  #wrong exif info
                     mtime = os.path.basename(fullFileName)
                     mtime = mtime[:6]
                     mtime = mtime[:4] + '-' + mtime[4:]
+                    #test the mtime range
+                    mtime_year = mtime[:4]
+                    mtime_isvalid = False
+                    if mtime_year.isdigit() and mtime_year > "2000" and mtime_year < "2018" :
+                        #test the month
+                        mtime_month = mtime[-2:]
+                        if mtime_month.isdigit() and mtime_month > "01" and mtime_month < "12":
+                            mtime_isvalid = True
+                    if not mtime_isvalid:
+                        mtime1 = os.path.getctime(fullFileName)
+                        mtime2 = os.path.getmtime(fullFileName)
+                        idate = mtime1 if mtime1 < mtime2 else mtime2
+                        idate = datetime.datetime.fromtimestamp(idate)
+                        mtime = idate.date().isoformat()
+
+
 
             i = 0
             while mtime+"_"*i in result:
                 i += 1
             mtime = mtime+"_"*i
             result[mtime] = fullFileName
-    print("  Found %s orignal files in %s."%(counter, folder))
-    print("Added total of %s to dictionary."%len(result))
     for key in result:
         print(key, result[key])
+    print("  Found %s orignal files in %s."%(counter, folder))
+    print("Added total of %s to dictionary."%len(result))
     return result
 def copy_from_image_dict_to_directory(image_dict, output_dir, move_file):
     assert os.path.exists(output_dir)
@@ -96,8 +108,10 @@ def copy_from_image_dict_to_directory(image_dict, output_dir, move_file):
             shutil.copy2(image_dict[key], output_file)
     print("Copied %s files to %s"%(i+1, output_dir))
 if __name__=="__main__":
-    source_dir = r"D:\final_photo\03_瑶瑶家生活\temp-new-doublekiller-pass"
-    output_dir = r"D:\final_photo\03_瑶瑶家生活"
+    #source_dir = r"D:\final_photo\03_瑶瑶家生活\temp-new-doublekiller-pass"
+    #output_dir = r"D:\final_photo\03_瑶瑶家生活"
+    source_dir = r"/media/nick/Jade250G/final_photo/03_瑶瑶家生活/temp-new-doublekiller-pass"
+    output_dir = r"/media/nick/Jade250G/final_photo/03_瑶瑶家生活"
 
     # obtain /var/tmp/images/iPhone, /var/tmp/images/CanonPowerShot, /var/tmp/images/Nikon1
     all_files = get_creationdate_with_filename_as_dict(source_dir, by_file_name=False)
